@@ -19,30 +19,10 @@ var render = Render.create({
     width: matterContainer.clientWidth,
     height: matterContainer.clientHeight,
     background: "transparent",
-    wireframes: false,
-    showAngleIndicator: false
+    wireframes: true,
+    showAngleIndicator: true
   }
 });
-
-// render balls
-let numberOfBalls = 200;
-let ballSize = 20;
-let delay = ballSize*2;
-
-for (let i = 0; i < numberOfBalls; i++ ) {
-  ((index) => {
-    setTimeout(() => {
-      // Random number between -20 and +20
-      let random = Math.floor(Math.random() * 60) - 30;
-      let circle = Bodies.circle(matterContainer.clientWidth / 2 + random, 10, ballSize, {
-        friction: 0.1,
-        frictionAir: 0.00001,
-        restitution: 0.8
-      });
-      Composite.add(engine.world, circle);
-    }, index * delay);
-  })(i);
-}
 
 var ground = Bodies.rectangle(
   matterContainer.clientWidth / 2,
@@ -51,27 +31,8 @@ var ground = Bodies.rectangle(
   THICCNESS,
   { isStatic: true }
 );
-
-let leftWall = Bodies.rectangle(
-  0 - THICCNESS / 2,
-  matterContainer.clientHeight / 2,
-  THICCNESS,
-  matterContainer.clientHeight * 5,
-  {
-    isStatic: true
-  }
-);
-
-let rightWall = Bodies.rectangle(
-  matterContainer.clientWidth + THICCNESS / 2,
-  matterContainer.clientHeight / 2,
-  THICCNESS,
-  matterContainer.clientHeight * 5,
-  { isStatic: true }
-);
-
 // add all of the bodies to the world
-Composite.add(engine.world, [ground, leftWall, rightWall]);
+Composite.add(engine.world, [ground]);
 
 let mouse = Matter.Mouse.create(render.canvas);
 let mouseConstraint = Matter.MouseConstraint.create(engine, {
@@ -118,15 +79,38 @@ function handleResize(matterContainer) {
       matterContainer.clientHeight + THICCNESS / 2
     )
   );
-
-  // reposition right wall
-  Matter.Body.setPosition(
-    rightWall,
-    Matter.Vector.create(
-      matterContainer.clientWidth + THICCNESS / 2,
-      matterContainer.clientHeight / 2
-    )
-  );
 }
 
 window.addEventListener("resize", () => handleResize(matterContainer));
+
+
+
+//Slingshot Game
+let platform = Matter.Bodies.rectangle(1200, 500, 300, 20, { isStatic: true });
+let stack = Matter.Composites.stack(1100, 270, 4, 4, 0, 0, function(x, y) {
+    return Matter.Bodies.polygon(x, y, 8, 30); 
+});
+
+let ball = Matter.Bodies.circle(300, 600,20);
+let sling = Matter.Constraint.create({ 
+    pointA: { x: 300, y: 600 }, 
+    bodyB: ball, 
+    stiffness: 0.05
+});
+
+
+let firing = false;
+Matter.Events.on(mouseConstraint,'enddrag', function(e) {
+  if(e.body === ball) firing = true;
+});
+
+Matter.Events.on(engine,'afterUpdate', function() {
+  if (firing && Math.abs(ball.position.x-300) < 20 && Math.abs(ball.position.y-600) < 20) {
+      ball = Matter.Bodies.circle(300, 600, 20);
+      Matter.World.add(engine.world, ball);
+      sling.bodyB = ball;
+      firing = false;
+  }
+});
+
+Composite.add(engine.world, [platform, stack, ball, sling]);

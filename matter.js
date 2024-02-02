@@ -86,28 +86,54 @@ window.addEventListener("resize", () => handleResize(matterContainer));
 
 
 //Slingshot Game
-/*
-let platform = Matter.Bodies.rectangle(1200, 500, 300, 20, { isStatic: true });
-let stack = Matter.Composites.stack(1100, 270, 4, 4, 0, 0, function(x, y) {
-    return Matter.Bodies.polygon(x, y, 8, 30); 
-});
-*/
-let radius = 30; // Adjust as needed
-let rows = 8; // Adjust as needed
-let columns = 3; // Adjust as needed
 
-let platformX = matterContainer.clientWidth * 0.8; // Adjust as needed
-let platformY = matterContainer.clientHeight * 0.75; // Adjust based on radius and rows
-let platformWidth = columns * radius * 2; // Adjust based on radius and columns
-let platform = Matter.Bodies.rectangle(platformX, platformY, platformWidth, 20, { isStatic: true });
+// platform and stack
+let isSpawned = false;
+let platform;
+let stack;
+function spawnPlatformAndStack(x, y){
+  let radius = 30; // Adjust as needed
+  let rows = 8; // Adjust as needed
+  let columns = 3; // Adjust as needed
+  
+  let platformX = x // Adjust as needed
+  let platformY = y; // Adjust based on radius and rows
+  let platformWidth = columns * radius * 2; // Adjust based on radius and columns
+  platform = Matter.Bodies.rectangle(platformX, platformY, platformWidth, 20, { isStatic: true });
+  
+  let stackX = platformX - platformWidth / 2; // Adjust based on radius and columns
+  let stackY = platformY - (rows * radius * 2); // Adjust based on radius and rows
+  stack = Matter.Composites.stack(stackX, stackY, columns, rows, 0, 0, function(x, y) {
+      return Matter.Bodies.polygon(x, y, 8, radius); 
+  });
+  Composite.add(engine.world, [platform, stack]);
+  isSpawned = true;
+}
+function removePlatformAndStack(){
+  Matter.Composite.remove(engine.world, platform);
+  Matter.Composite.remove(engine.world, stack);
+  isSpawned = false;
+}
 
-let stackX = platformX - platformWidth / 2; // Adjust based on radius and columns
-let stackY = platformY - (rows * radius * 2); // Adjust based on radius and rows
-let stack = Matter.Composites.stack(stackX, stackY, columns, rows, 0, 0, function(x, y) {
-    return Matter.Bodies.polygon(x, y, 8, radius); 
-});
+// Add an event listener for right mouse button click
+window.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+
+  // Check if spawnedObj is defined
+  if (isSpawned) {
+    removePlatformAndStack();
+  }
+
+  // Get the mouse position
+  var mouseX = e.clientX;
+  var mouseY = e.clientY;
+
+  // Create a new body
+  spawnPlatformAndStack(mouseX, mouseY);
+}, false);
 
 
+// Slingshot
 let ballX = 450;
 let ballY = 450;
 let ballRadius = 20;
@@ -133,4 +159,41 @@ Matter.Events.on(engine,'afterUpdate', function() {
   }
 });
 
-Composite.add(engine.world, [platform, stack, ball, sling]);
+Composite.add(engine.world, [ball, sling]);
+
+
+/*
+let ball;
+let sling;
+
+// Add an event listener for left mouse button click
+window.addEventListener('mousedown', function(e) {
+  // Prevent default action
+  e.preventDefault();
+
+  // Remove the old ball and sling from the world
+  if (typeof ball !== 'undefined') {
+      Matter.Composite.remove(engine.world, ball);
+  }
+  if (typeof sling !== 'undefined') {
+      Matter.Composite.remove(engine.world, sling);
+  }
+
+  // Get the mouse position
+  ballX = e.clientX;
+  ballY = e.clientY;
+
+  // Create a new ball at the mouse position
+  ball = Matter.Bodies.circle(ballX, ballY, ballRadius);
+
+  // Create a new sling attached to the new ball
+  sling = Matter.Constraint.create({ 
+      pointA: { x: mouseX, y: mouseY }, 
+      bodyB: ball, 
+      stiffness: 0.05
+  });
+
+  // Add the new ball and sling to the world
+  Matter.World.add(engine.world, [ball, sling]);
+}, false);
+*/
